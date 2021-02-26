@@ -8,14 +8,13 @@
     "build": "tsc -p tsconfig.json",
     "dev": "ts-node-dev --respawn src/index.ts",
     "watch": "tsc --watch",
-    "start": "nodemon --watch dist dist/index.js",
-    "starti": "nodemon --inspect-brk --watch dist dist/index.js",
-    "start2": "nodemon --inspect-brk dist dist/index.js"
+    "start": "nodemon --inspect-brk dist dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tonejs/midi": "^2.0.26",
     "arcsecond": "^3.1.0",
     "arcsecond-binary": "^2.0.0",
     "construct-js": "^0.7.0"
