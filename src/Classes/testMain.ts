@@ -12,6 +12,7 @@ export class TestMain {
     private MIDI_PATH = '../../';
 
     runMain() {
+        debugger;
         let file: Buffer;
         try {
             file = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/test.mid`));
@@ -20,14 +21,14 @@ export class TestMain {
             console.warn(err);
             debugger;
         }
-        
+
         let ab = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
-        
+
         const midi = new Midi(ab);
-        
+
         //the file name decoded from the first track
         const name = midi.name
-        
+
         //get the tracks
         midi.tracks.forEach((track: Track) => {
             //tracks have notes and controlChanges
@@ -36,17 +37,18 @@ export class TestMain {
             const notes = track.notes;
             notes.forEach((note: Note) => {
                 console.log(note);
-                note.pitch = 'B';
+                note.pitch = 'G';
                 note.velocity = 0.75;
-                
-                //note.midi, note.time, note.duration, note.name
-            })
 
-            
+                //note.midi, note.time, note.duration, note.name
+            });
+
+            notes[1].ticks = this.measuresToTicks(2.5, midi.header);
+
             //the control changes are an object
             //the keys are the CC number
             track.controlChanges[64];
-            
+
             //they are also aliased to the CC number's common name (if it has one)
             if(track.controlChanges.sustain) {
                 track.controlChanges.sustain.forEach(cc => {
@@ -56,9 +58,9 @@ export class TestMain {
 
             //the track also has a channel and instrument
             track.instrument.name;
-            
+
         });
-        
+
         const miniUint8Array: Uint8Array = midi.toArray();
 
         fs.writeFileSync(path.join(__dirname, `${this.MIDI_PATH}/new.mid`), Buffer.from(miniUint8Array));
@@ -66,28 +68,10 @@ export class TestMain {
 
 
     /**
-     * Convert ticks into measures based off of the time signatures
+     * Convert measures based off of the time signatures into ticks
      */
-    measuresToTicks(ticks: number): number {
-        const index = search(this.timeSignatures, ticks);
-        if (index !== -1) {
-            const timeSigEvent = this.timeSignatures[index];
-            const elapsedBeats = (ticks - timeSigEvent.ticks) / this.ppq;
-            return (
-                timeSigEvent.measures +
-                elapsedBeats /
-                (timeSigEvent.timeSignature[0] /
-                    timeSigEvent.timeSignature[1]) /
-                4
-            );
-        } else {
-            return ticks / this.ppq / 4;
-        }
-        
-        let bars = 2;
-        
-        ticks = 1;
+    measuresToTicks(bars: number, header: Header): number {
+        let ticks = bars * header.ppq * 4;
+        return ticks;
     }
-
 }
-
