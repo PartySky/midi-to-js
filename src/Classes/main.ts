@@ -8,7 +8,7 @@ import {search} from "@tonejs/midi/src/BinarySearch";
 const { Midi } = require('@tonejs/midi')
 
 
-export class TestMain {
+export class Main {
     private MIDI_PATH = '../../';
 
     runMain() {
