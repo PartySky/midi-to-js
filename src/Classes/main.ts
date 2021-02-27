@@ -13,7 +13,6 @@ export class Main {
     private PATTERN_PATH = 'patterns/';
 
     runMain() {
-        debugger;
         let file: Buffer;
         let esIntro_10_pattern: Buffer;
         try {
@@ -22,7 +21,7 @@ export class Main {
         } catch (err) {
             file = new Buffer(16);
             esIntro_10_pattern = new Buffer(16);
-            console.warn(err);
+            throw new Error(err);
             debugger;
         }
 
@@ -32,10 +31,16 @@ export class Main {
         //the file name decoded from the first track
         const name = midi.name
         
+        if(midi.tracks.length > 1) {
+            midi.tracks[0].notes = midi.tracks[1].notes;
+            midi.tracks.splice(1);
+        }
+        
+        
         //get the tracks
         midi.tracks.forEach((track: Track) => {
             //tracks have notes and controlChanges
-
+            
             //notes are an array
             const notes = track.notes;
             notes.forEach((note: Note) => {
@@ -45,8 +50,13 @@ export class Main {
                 //note.midi, note.time, note.duration, note.name
             });
 
+            
             this.applyTestingPattern(track.notes, midi.header);
-            this.applyTestingPattern(track.notes, midi.header);
+            this.applyESIntroPatternPattern(
+                track.notes, 
+                midi.header, 
+                esIntro_10_patternMidi.tracks[0].notes,
+                esIntro_10_patternMidi.header);
             
             // notes[1].ticks = this.measuresToTicks(2.5, midi.header);
 
@@ -70,14 +80,26 @@ export class Main {
 
         fs.writeFileSync(path.join(__dirname, `${this.MIDI_PATH}/new.mid`), Buffer.from(miniUint8Array));
     }
-
-
+    
     /**
      * Convert measures based off of the time signatures into ticks
      */
     measuresToTicks(bars: number, header: Header): number {
         let ticks = bars * header.ppq * 4;
         return ticks;
+    }
+
+    private getNotesByDrumElement(notes: Note[], drumItemEnum: DrumItemEnum): Note[] {
+        let result: Note[] = [];
+        
+        notes.forEach(item => {
+            if (drumItemEnum === DrumItemEnum.kick && item.name === 'C2') {
+                result.push(item);
+            } else if (drumItemEnum === DrumItemEnum.allAthers && item.name !== 'C2') {
+                result.push(item);
+            }
+        });
+        return result;
     }
 
     private getNDurationBarNotes(notes: Note[], header: Header, barFirstSegmentDuration: number, barSize: number = 1): Note[] {
@@ -132,6 +154,71 @@ export class Main {
         });
     }
 
+    applyESIntroPatternPattern(notes: Note[], header: Header, notes2: Note[], header2: Header): void {
+        
+        notes.forEach(note => {
+            note.velocity = 0.01;
+        });
+
+        debugger;
+        
+        const delta = 1/16;
+        let maxBar = this.getMaxBar(notes);
+        const step = 1/8;
+        const patternMaxBar = this.getMaxBar(notes2);;
+        let patternBarCounter = 0
+        
+        for (let barCounter = 0; barCounter <= maxBar; barCounter = barCounter + step) {
+            if (patternBarCounter > patternMaxBar) {
+                patternBarCounter = barCounter % 1;
+            }
+            
+            const kick2Filtered = this.getNotesByDrumElement(notes2, DrumItemEnum.kick)
+                .filter(item => {
+                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+            });
+
+            const allAthers2Filtered = this.getNotesByDrumElement(notes2, DrumItemEnum.allAthers)
+                .filter(item => {
+                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+                });
+
+            const kickFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.kick)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+
+            const allAthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allAthers)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+            
+            if (kick2Filtered[0]) {
+                kickFiltered.forEach(item => {
+                    item.velocity = kick2Filtered[0].velocity;
+                });
+            }
+
+            if (allAthers2Filtered[0]) {
+                allAthersFiltered.forEach(item => {
+                    item.velocity = allAthers2Filtered[0].velocity;
+                });
+            }
+            
+            patternBarCounter = patternBarCounter + step;
+        }
+    }
+
+    getMaxBar(notes: Note[]): number {
+        let result = 0;
+        notes.forEach(item => {
+            if(item.bars > result) {
+                result = item.bars;
+            }
+        });
+        return result;
+    }
+
     private getArrayBufferFromBuffer(buffer: Buffer): ArrayBuffer {
         const result = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
         return result;
@@ -142,4 +229,10 @@ export class Main {
         const result = new Midi(ab);
         return result;
     };
+    
+}
+
+export enum DrumItemEnum {
+    kick,
+    allAthers
 }
