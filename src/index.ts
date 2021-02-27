@@ -1,7 +1,8 @@
-import {TestMain} from "./Classes/testMain";
+import {Main} from "./Classes/main";
+
 
 console.clear();
 console.log('Hello World 39');
 
-const main: TestMain = new TestMain();
+const main: Main = new Main();
 main.runMain();
