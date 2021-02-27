@@ -1,7 +1,7 @@
 // @ts-ignore
 import fs = require('fs');
 import path = require('path');
-import {Header, Track} from "@tonejs/midi";
+import {Header, Midi, Track} from "@tonejs/midi";
 import {Note, NoteOffEvent, NoteOnEvent} from "@tonejs/midi/dist/Note";
 import {search} from "@tonejs/midi/src/BinarySearch";
 
@@ -10,25 +10,28 @@ const { Midi } = require('@tonejs/midi')
 
 export class Main {
     private MIDI_PATH = '../../';
+    private PATTERN_PATH = 'patterns/';
 
     runMain() {
         debugger;
         let file: Buffer;
+        let esIntro_10_pattern: Buffer;
         try {
             file = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/test.mid`));
+            esIntro_10_pattern = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/${this.PATTERN_PATH}/es_intro_10.mid`));
         } catch (err) {
-            file = new Buffer(16);    
+            file = new Buffer(16);
+            esIntro_10_pattern = new Buffer(16);
             console.warn(err);
             debugger;
         }
 
-        let ab = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
-
-        const midi = new Midi(ab);
+        const midi = this.getMidiFromBuffer(file);
+        const esIntro_10_patternMidi = this.getMidiFromBuffer(esIntro_10_pattern);
 
         //the file name decoded from the first track
         const name = midi.name
-
+        
         //get the tracks
         midi.tracks.forEach((track: Track) => {
             //tracks have notes and controlChanges
@@ -42,30 +45,8 @@ export class Main {
                 //note.midi, note.time, note.duration, note.name
             });
 
-            const eighthBarNotes: Note[] = this.getNDurationBarNotes(track.notes, midi.header, 1/8);
-            const quarterBarNotes: Note[] = this.getNDurationBarNotes(track.notes, midi.header, 1/4);
-            const halfBarNotes: Note[] = this.getNDurationBarNotes(track.notes, midi.header, 1/2);
-            const wholeBarNotes: Note[] = this.getNDurationBarNotes(track.notes, midi.header, 1/1);
-
-            notes.forEach(note => {
-               note.velocity = 0.01; 
-            });
-
-            // sixteenthBarNotes.forEach(note => {
-            //     note.velocity = 0.25;
-            // });
-            eighthBarNotes.forEach(note => {
-                note.velocity = 0.25;
-            });
-            quarterBarNotes.forEach(note => {
-                note.velocity = 0.5;
-            });
-            halfBarNotes.forEach(note => {
-               note.velocity = 0.75; 
-            });
-            wholeBarNotes.forEach(note => {
-                note.velocity = 1;
-            });
+            this.applyTestingPattern(track.notes, midi.header);
+            this.applyTestingPattern(track.notes, midi.header);
             
             // notes[1].ticks = this.measuresToTicks(2.5, midi.header);
 
@@ -122,4 +103,43 @@ export class Main {
         });
         return result;
     }
+
+    private applyTestingPattern(notes: Note[], header: Header) {
+        const eighthBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/8);
+        const quarterBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/4);
+        const halfBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/2);
+        const wholeBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/1);
+
+
+        notes.forEach(note => {
+            note.velocity = 0.01;
+        });
+
+        // sixteenthBarNotes.forEach(note => {
+        //     note.velocity = 0.25;
+        // });
+        eighthBarNotes.forEach(note => {
+            note.velocity = 0.25;
+        });
+        quarterBarNotes.forEach(note => {
+            note.velocity = 0.5;
+        });
+        halfBarNotes.forEach(note => {
+            note.velocity = 0.75;
+        });
+        wholeBarNotes.forEach(note => {
+            note.velocity = 1;
+        });
+    }
+
+    private getArrayBufferFromBuffer(buffer: Buffer): ArrayBuffer {
+        const result = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        return result;
+    }
+
+    private getMidiFromBuffer(buffer: Buffer): Midi {
+        const ab = this.getArrayBufferFromBuffer(buffer);
+        const result = new Midi(ab);
+        return result;
+    };
 }
