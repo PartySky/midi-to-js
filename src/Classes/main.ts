@@ -113,17 +113,51 @@ export class Main {
         let ticks = bars * header.ppq * 4;
         return ticks;
     }
+    
 
     private getNotesByDrumElement(notes: Note[], drumItemEnum: DrumItemEnum): Note[] {
         let result: Note[] = [];
+
+        const generalMidiKicks: string[] = [
+            GeneralMidiMap.acousticBassDrum,
+            GeneralMidiMap.bassDrum
+        ];
+
+        const generalMidiSnares: string[] = [
+            GeneralMidiMap.acousticSnare,
+            GeneralMidiMap.electricSnare
+        ];
+
+        const generalMidiElectricSnares: string[] = [
+            GeneralMidiMap.electricSnare,
+        ];
+        const generalMidiAcousticSnares: string[] = [
+            GeneralMidiMap.acousticSnare,
+        ];
+
+        const generalMidiToms: string[] = [
+            GeneralMidiMap.lowFloorTom,
+            GeneralMidiMap.highFloorTom,
+            GeneralMidiMap.lowTom,
+            GeneralMidiMap.lowMidTom,
+            GeneralMidiMap.highMidTom,
+            GeneralMidiMap.highTom,
+        ];
         
         notes.forEach(item => {
-            if (drumItemEnum === DrumItemEnum.kick && (item.name === 'C2' || item.name === 'B1')) {
+            if (drumItemEnum === DrumItemEnum.kick && generalMidiKicks.includes(item.name)) {
                 result.push(item);
-            } else if (drumItemEnum === DrumItemEnum.snare && (item.name === 'D2' || item.name === 'E2')) {
+            } else if (drumItemEnum === DrumItemEnum.acousticSnare && generalMidiAcousticSnares.includes(item.name)) {
                 result.push(item);
-            } else if (drumItemEnum === DrumItemEnum.allAthers && 
-                (item.name !== 'B1' && item.name !== 'C2' && item.name !== 'D2' && item.name !== 'E2')) {
+            } else if (drumItemEnum === DrumItemEnum.electricSnare && generalMidiElectricSnares.includes(item.name)) {
+                result.push(item);
+            } else if (drumItemEnum === DrumItemEnum.toms && generalMidiToms.includes(item.name)) {
+                result.push(item);
+            } else if (drumItemEnum === DrumItemEnum.allOthers && (
+                !generalMidiKicks.includes(item.name) &&
+                !generalMidiSnares.includes(item.name) &&
+                !generalMidiToms.includes(item.name)
+            )) {
                 result.push(item);
             }
         });
@@ -206,12 +240,12 @@ export class Main {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
             });
 
-            const snare2Filtered = this.getNotesByDrumElement(notes2, DrumItemEnum.snare)
+            const snare2Filtered = this.getNotesByDrumElement(notes2, DrumItemEnum.acousticSnare)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const allAthers2Filtered = this.getNotesByDrumElement(notes2, DrumItemEnum.allAthers)
+            const allAthers2Filtered = this.getNotesByDrumElement(notes2, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
@@ -224,12 +258,12 @@ export class Main {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
 
-            const snareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.snare)
+            const snareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const allAthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allAthers)
+            const allAthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
@@ -304,6 +338,16 @@ export class Main {
         const patternMaxBar = this.getMaxBar(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes);;
         let patternBarCounter = 0
 
+        // /**
+        //  * test
+        //  */
+        //
+        midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes.forEach(item => {
+            item.velocity = 0.1;
+        })
+        
+        
+        
         for (let barCounter = 0; barCounter <= maxBar; barCounter = barCounter + step) {
             if (patternBarCounter > patternMaxBar) {
                 patternBarCounter = barCounter % 1;
@@ -318,12 +362,17 @@ export class Main {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const snare2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.snare)
+            const snare2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.acousticSnare)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const allAthers2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.allAthers)
+            const toms2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.toms)
+                .filter(item => {
+                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+                });
+
+            const allAthers2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
@@ -333,16 +382,21 @@ export class Main {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const snare3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.snare)
+            const snare3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.acousticSnare)
+                .filter(item => {
+                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+                });
+            
+            const toms3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.toms)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const allAthers3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.allAthers)
+            const allAthers3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
-
+   
             /**
              * Applaying drums
              */
@@ -351,58 +405,179 @@ export class Main {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
 
-            const snareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.snare)
+            const acousticSnareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
             
-            const allAthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allAthers)
+            const electricSnareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.electricSnare)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+            
+            const tomsFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.toms)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+            
+            const allOthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
             
             const isGroupOf8thKick: boolean = this.isGroupOf8th(notes, DrumItemEnum.kick, barCounter, delta, kickFiltered);
-            const isGroupOf8thSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.snare, barCounter, delta, snareFiltered);
-            const isGroupOf8thAllAthers: boolean = this.isGroupOf8th(notes, DrumItemEnum.allAthers, barCounter, delta, allAthersFiltered);
+            // todo: continue from there
+            const isGroupOf8thSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.acousticSnare, barCounter, delta, acousticSnareFiltered);
+            const isGroupOf8thToms: boolean = this.isGroupOf8th(notes, DrumItemEnum.toms, barCounter, delta, tomsFiltered);
+            const isGroupOf8thAllOthers: boolean = this.isGroupOf8th(notes, DrumItemEnum.allOthers, barCounter, delta, allOthersFiltered);
             
             if (isGroupOf8thKick) {
                 if (kick3Filtered[0]) {
                     kickFiltered.forEach(item => {
                         item.velocity = kick3Filtered[0].velocity;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            debugger;
+                            let x1 = kick3Filtered[0].bars;
+                            let x2 = kick3Filtered[0].bars % 1;
+                            let x3 = item.bars + kick3Filtered[0].bars % 1;
+                            let x4 = this.measuresToTicks(item.bars + kick3Filtered[0].bars % 1, header);
+                            
+                            let x5 = this.getClosestNote(item, kick3Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+                            
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
                     });
                 }
             } else {
                 if (kick2Filtered[0]) {
                     kickFiltered.forEach(item => {
                         item.velocity = kick2Filtered[0].velocity;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+
+                            
+                            debugger;
+                            let x1 = kick2Filtered[0].bars;
+                            let x2 = kick2Filtered[0].bars % 1;
+                            let x3 = item.bars + kick2Filtered[0].bars % 1;
+                            let x4 = this.measuresToTicks(item.bars + kick2Filtered[0].bars % 1, header);
+                            let x5 = this.getClosestNote(item, kick2Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
                     });
                 }
             }
+
+            const acousticSnareReducingCoeffitien4th = 55 * (1/127);
+            const electricSnareReducingCoeffitien4th = 25 * (1/127);
+
+            const acousticSnareReducingCoeffitien8th = 0 * (1/127);
+            const electricSnareReducingCoeffitien8th = 0 * (1/127);
+            
             
             if (isGroupOf8thSnare) {
                 if (snare3Filtered[0]) {
-                    snareFiltered.forEach(item => {
-                        item.velocity = snare3Filtered[0].velocity;
+                    acousticSnareFiltered.forEach(item => {
+                        item.velocity = snare3Filtered[0].velocity - acousticSnareReducingCoeffitien8th;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, snare3Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
+                    });
+
+                    electricSnareFiltered.forEach(item => {
+                        item.velocity = snare3Filtered[0].velocity - electricSnareReducingCoeffitien8th;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, snare3Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
                     });
                 }
             } else {
                 if (snare2Filtered[0]) {
-                    snareFiltered.forEach(item => {
-                        item.velocity = snare2Filtered[0].velocity;
+                    acousticSnareFiltered.forEach(item => {
+                        item.velocity = snare2Filtered[0].velocity - acousticSnareReducingCoeffitien4th;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, snare2Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
+                    });
+
+                    electricSnareFiltered.forEach(item => {
+                        item.velocity = snare2Filtered[0].velocity - electricSnareReducingCoeffitien4th;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, snare2Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
+                    });
+                }
+            }
+
+            if (isGroupOf8thToms) {
+                if (toms3Filtered[0]) {
+                    tomsFiltered.forEach(item => {
+                        // item.velocity = toms3Filtered[0].velocity;
+                        // if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, toms3Filtered);
+                            item.velocity = x5.velocity;
+                            
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+                            
+                            if (this.isStraightAtTheGrid(item.bars)) {
+                                item.ticks = this.measuresToTicks(item.bars + distance, header);
+                            }
+                        // }
+                    });
+                }
+            } else {
+                if (toms2Filtered[0]) {
+                    tomsFiltered.forEach(item => {
+                        // item.velocity = toms2Filtered[0].velocity;
+                        // if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, toms2Filtered);
+                            item.velocity = x5.velocity;
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            if (this.isStraightAtTheGrid(item.bars)) {
+                                item.ticks = this.measuresToTicks(item.bars + distance, header);
+                            }
+                        // }
                     });
                 }
             }
             
-            if (isGroupOf8thAllAthers) {
+            if (isGroupOf8thAllOthers) {
                 if (allAthers3Filtered[0]) {
-                    allAthersFiltered.forEach(item => {
+                    allOthersFiltered.forEach(item => {
                         item.velocity = allAthers3Filtered[0].velocity;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, allAthers3Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
                     });
                 }
             } else {
                 if (allAthers2Filtered[0]) {
-                    allAthersFiltered.forEach(item => {
+                    allOthersFiltered.forEach(item => {
                         item.velocity = allAthers2Filtered[0].velocity;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, allAthers2Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
                     });
                 }
             }
@@ -414,16 +589,44 @@ export class Main {
 
     private isGroupOf8th(notes: Note[], instrument: DrumItemEnum, barCounter: number, delta: number, filtered: Note[]) {
         if (!filtered || !filtered.length) { return false };
-        
-        const previousNotes = this.getNotesByDrumElement(notes, instrument)
-            .filter(item => {
-                return (item.bars < barCounter - delta);
-            });
 
-        const nextNotes = this.getNotesByDrumElement(notes, instrument)
-            .filter(item => {
-                return (item.bars >= barCounter + delta);
-            });
+        let previousNotes: Note[] = [];
+        let nextNotes: Note[] = [];
+        
+        if (instrument !== DrumItemEnum.acousticSnare && instrument !== DrumItemEnum.toms) {
+            previousNotes = this.getNotesByDrumElement(notes, instrument)
+                .filter(item => {
+                    return (item.bars < barCounter - delta);
+                });
+
+            nextNotes = this.getNotesByDrumElement(notes, instrument)
+                .filter(item => {
+                    return (item.bars >= barCounter + delta);
+                });
+        } else {
+            const previousNotesSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+                .filter(item => {
+                    return (item.bars < barCounter - delta);
+                });
+            const previousNotesToms = this.getNotesByDrumElement(notes, DrumItemEnum.toms)
+                .filter(item => {
+                    return (item.bars < barCounter - delta);
+                });
+            
+            
+            const nextNotesSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+                .filter(item => {
+                    return (item.bars >= barCounter + delta);
+                });
+            const nextNotesToms = this.getNotesByDrumElement(notes, DrumItemEnum.toms)
+                .filter(item => {
+                    return (item.bars >= barCounter + delta);
+                });
+
+            previousNotes = previousNotesSnare.concat(previousNotesToms);
+            nextNotes = nextNotesSnare.concat(nextNotesToms);
+        }
+        
 
         const previousNoteBar = this.getMaxBar(previousNotes);
         const nextNoteBar = this.getMinBar(nextNotes);
@@ -433,13 +636,40 @@ export class Main {
             ((nextNoteBar !== 0) && ((nextNoteBar - barCounter) <= (1/8 + delta)))
         );
         
-        // const lastFIltered = this.getMaxBar(filtered);
-        // const firstFIltered = this.getMinBar(filtered);
-        //
-        // let result = (
-        //     ((previousNoteBar !== 0) && ((firstFIltered - previousNoteBar) < 1/8 + delta)) ||
-        //     ((nextNoteBar !== 0) && ((lastFIltered - barCounter) <= (1/8 + delta)))
-        // );
+        return result;
+    }
+    
+    private isStraightAtTheGrid(bars: number) {
+        let result = false;
+        const xTemp: number[] = [
+            1/8,
+            1/8 * 2,
+            1/8 * 3,
+            1/8 * 4,
+            1/8 * 5,
+            1/8 * 6,
+            1/8 * 7,
+            1/8 * 8,
+        ];
+        
+        if (xTemp.includes(bars % 1)) {
+            result = true;
+        }
+        
+        return result;
+    }
+
+    private getClosestNote(note: Note, notes: Note[]): Note {
+        let result: Note = notes[0];
+        
+        notes.forEach(item => {
+            if(
+                Math.abs(item.bars % 1 - note.bars % 1) < 
+                Math.abs(result.bars % 1 - note.bars % 1)
+            ) {
+                result = item;
+            }
+        })
         
         return result;
     }
@@ -447,8 +677,34 @@ export class Main {
 
 export enum DrumItemEnum {
     kick,
-    snare,
-    allAthers
+    acousticSnare,
+    electricSnare,
+    toms,
+    allOthers
+}
+
+export enum GeneralMidiMap {
+    /**
+     * Kicks
+     */
+    acousticBassDrum = 'B1',
+    bassDrum = 'C2',
+    
+    /**
+     * Snares
+     */
+    acousticSnare = 'D2',
+    electricSnare = 'E2',
+
+    /**
+     * Toms
+     */
+    lowFloorTom = 'F2',
+    highFloorTom = 'G2',
+    lowTom = 'A2',
+    lowMidTom = 'B2',
+    highMidTom = 'C3',
+    highTom = 'D3',
 }
 
 export interface MidiPattern {
