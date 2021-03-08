@@ -12,8 +12,8 @@ export class Main {
     private MIDI_PATH = '../../';
     private PATTERN_PATH = 'patterns/';
     private midiPatterns: MidiPattern = {};
-    private BPM_001_300_4TH_PATTERN_NAME = 'esIntro_10_patternMidi';
-    private BPM_250_300_8TH_PATTERN_NAME = 'DM_250_300bpm_verse_Variation_02_mid';
+    private BPM_001_300_4TH_PATTERN_NAME = 'bpm_001_300_4th_es_intro_10'; // esIntro_10_patternMidi
+    private BPM_250_300_8TH_PATTERN_NAME = 'bpm_250_300_8th__DM__verse_Variation_02'; //DM_250_300bpm_verse_Variation_02_mid'
 
     runMain() {
         let file: Buffer;
@@ -21,8 +21,8 @@ export class Main {
         let DM_250_300bpm_verse_Variation_02_pattern: Buffer;
         try {
             file = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/test.mid`));
-            esIntro_10_pattern = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/${this.PATTERN_PATH}/es_intro_10.mid`));
-            DM_250_300bpm_verse_Variation_02_pattern = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/${this.PATTERN_PATH}/bpm_250_300_8th__DM__verse_Variation_02.mid`));
+            esIntro_10_pattern = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/${this.PATTERN_PATH}/${this.BPM_001_300_4TH_PATTERN_NAME}.mid`));
+            DM_250_300bpm_verse_Variation_02_pattern = fs.readFileSync(path.join(__dirname, `${this.MIDI_PATH}/${this.PATTERN_PATH}/${this.BPM_250_300_8TH_PATTERN_NAME}.mid`));
         } catch (err) {
             file = new Buffer(16);
             esIntro_10_pattern = new Buffer(16);
@@ -57,7 +57,6 @@ export class Main {
             midi.tracks.splice(1);
         }
 
-        
         
         //get the tracks
         midi.tracks.forEach((track: Track) => {
@@ -329,7 +328,6 @@ export class Main {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-
             const kick3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.kick)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
@@ -362,7 +360,7 @@ export class Main {
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
-
+            
             const isGroupOf8thKick: boolean = this.isGroupOf8th(notes, DrumItemEnum.kick, barCounter, delta, kickFiltered);
             const isGroupOf8thSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.snare, barCounter, delta, snareFiltered);
             const isGroupOf8thAllAthers: boolean = this.isGroupOf8th(notes, DrumItemEnum.allAthers, barCounter, delta, allAthersFiltered);
