@@ -39,7 +39,16 @@ export class Main {
         
         // todo:
         // const esIntro_10_pattern_midi = loadMidi('es_intro_10.mid');
-        
+
+        if(DM_250_300bpm_verse_Variation_02_mid.tracks.length > 1) {
+            DM_250_300bpm_verse_Variation_02_mid.tracks[0].notes = DM_250_300bpm_verse_Variation_02_mid.tracks[1].notes;
+            DM_250_300bpm_verse_Variation_02_mid.tracks.splice(1);
+        }
+        if(esIntro_10_pattern_midi.tracks.length > 1) {
+            esIntro_10_pattern_midi.tracks[0].notes = esIntro_10_pattern_midi.tracks[1].notes;
+            esIntro_10_pattern_midi.tracks.splice(1);
+        }
+
         this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME] = {
             notes: esIntro_10_pattern_midi.tracks[0].notes,
             header: esIntro_10_pattern_midi.header
@@ -56,7 +65,6 @@ export class Main {
             midi.tracks[0].notes = midi.tracks[1].notes;
             midi.tracks.splice(1);
         }
-
         
         //get the tracks
         midi.tracks.forEach((track: Track) => {
@@ -342,12 +350,12 @@ export class Main {
         //  * test
         //  */
         //
-        midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes.forEach(item => {
-            item.velocity = 0.1;
-        })
+        // midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes.forEach(item => {
+        //     item.velocity = 0.1;
+        // })
         
-        
-        
+
+        debugger;
         for (let barCounter = 0; barCounter <= maxBar; barCounter = barCounter + step) {
             if (patternBarCounter > patternMaxBar) {
                 patternBarCounter = barCounter % 1;
@@ -396,7 +404,7 @@ export class Main {
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
-   
+            
             /**
              * Applaying drums
              */
@@ -427,7 +435,8 @@ export class Main {
             
             const isGroupOf8thKick: boolean = this.isGroupOf8th(notes, DrumItemEnum.kick, barCounter, delta, kickFiltered);
             // todo: continue from there
-            const isGroupOf8thSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.acousticSnare, barCounter, delta, acousticSnareFiltered);
+            const isGroupOf8thAcousticSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.acousticSnare, barCounter, delta, acousticSnareFiltered);
+            const isGroupOf8thElectricSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.electricSnare, barCounter, delta, electricSnareFiltered);
             const isGroupOf8thToms: boolean = this.isGroupOf8th(notes, DrumItemEnum.toms, barCounter, delta, tomsFiltered);
             const isGroupOf8thAllOthers: boolean = this.isGroupOf8th(notes, DrumItemEnum.allOthers, barCounter, delta, allOthersFiltered);
             
@@ -473,24 +482,15 @@ export class Main {
             const acousticSnareReducingCoeffitien4th = 55 * (1/127);
             const electricSnareReducingCoeffitien4th = 25 * (1/127);
 
-            const acousticSnareReducingCoeffitien8th = 0 * (1/127);
+            const acousticSnareReducingCoeffitien8th = 25 * (1/127);
             const electricSnareReducingCoeffitien8th = 0 * (1/127);
-            
-            
-            if (isGroupOf8thSnare) {
+
+            if (isGroupOf8thAcousticSnare) {
                 if (snare3Filtered[0]) {
                     acousticSnareFiltered.forEach(item => {
                         item.velocity = snare3Filtered[0].velocity - acousticSnareReducingCoeffitien8th;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, snare3Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
-
-                    electricSnareFiltered.forEach(item => {
-                        item.velocity = snare3Filtered[0].velocity - electricSnareReducingCoeffitien8th;
+                        // item.velocity = snare3Filtered[0].velocity;
+                        // item.velocity = 0.5;
                         if (this.isStraightAtTheGrid(item.bars)) {
                             let x5 = this.getClosestNote(item, snare3Filtered);
                             let distance = - ((item.bars % 1) - (x5.bars % 1));
@@ -503,6 +503,8 @@ export class Main {
                 if (snare2Filtered[0]) {
                     acousticSnareFiltered.forEach(item => {
                         item.velocity = snare2Filtered[0].velocity - acousticSnareReducingCoeffitien4th;
+                        // item.velocity = snare2Filtered[0].velocity;
+                        // item.velocity = 0.25;
                         if (this.isStraightAtTheGrid(item.bars)) {
                             let x5 = this.getClosestNote(item, snare2Filtered);
                             let distance = - ((item.bars % 1) - (x5.bars % 1));
@@ -510,9 +512,29 @@ export class Main {
                             item.ticks = this.measuresToTicks(item.bars + distance, header);
                         }
                     });
+                }
+            }
 
+            if (isGroupOf8thElectricSnare) {
+                if (snare3Filtered[0]) {
+                    electricSnareFiltered.forEach(item => {
+                        item.velocity = snare3Filtered[0].velocity - electricSnareReducingCoeffitien8th;
+                        // item.velocity = snare3Filtered[0].velocity;
+                        // item.velocity = 0.7;
+                        if (this.isStraightAtTheGrid(item.bars)) {
+                            let x5 = this.getClosestNote(item, snare3Filtered);
+                            let distance = - ((item.bars % 1) - (x5.bars % 1));
+
+                            item.ticks = this.measuresToTicks(item.bars + distance, header);
+                        }
+                    });
+                }
+            } else {
+                if (snare2Filtered[0]) {
                     electricSnareFiltered.forEach(item => {
                         item.velocity = snare2Filtered[0].velocity - electricSnareReducingCoeffitien4th;
+                        // item.velocity = snare2Filtered[0].velocity;
+                        // item.velocity = 0.75;
                         if (this.isStraightAtTheGrid(item.bars)) {
                             let x5 = this.getClosestNote(item, snare2Filtered);
                             let distance = - ((item.bars % 1) - (x5.bars % 1));
@@ -593,7 +615,11 @@ export class Main {
         let previousNotes: Note[] = [];
         let nextNotes: Note[] = [];
         
-        if (instrument !== DrumItemEnum.acousticSnare && instrument !== DrumItemEnum.toms) {
+        if (
+            instrument !== DrumItemEnum.acousticSnare && 
+            instrument !== DrumItemEnum.electricSnare && 
+            instrument !== DrumItemEnum.toms
+        ) {
             previousNotes = this.getNotesByDrumElement(notes, instrument)
                 .filter(item => {
                     return (item.bars < barCounter - delta);
@@ -604,7 +630,11 @@ export class Main {
                     return (item.bars >= barCounter + delta);
                 });
         } else {
-            const previousNotesSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+            const previousNotesAcousticSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+                .filter(item => {
+                    return (item.bars < barCounter - delta);
+                });
+            const previousNotesElectricSnare = this.getNotesByDrumElement(notes, DrumItemEnum.electricSnare)
                 .filter(item => {
                     return (item.bars < barCounter - delta);
                 });
@@ -614,7 +644,11 @@ export class Main {
                 });
             
             
-            const nextNotesSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+            const nextNotesAcousticSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+                .filter(item => {
+                    return (item.bars >= barCounter + delta);
+                });
+            const nextNotesElectricSnare = this.getNotesByDrumElement(notes, DrumItemEnum.electricSnare)
                 .filter(item => {
                     return (item.bars >= barCounter + delta);
                 });
@@ -623,8 +657,11 @@ export class Main {
                     return (item.bars >= barCounter + delta);
                 });
 
-            previousNotes = previousNotesSnare.concat(previousNotesToms);
-            nextNotes = nextNotesSnare.concat(nextNotesToms);
+            const xTemp = previousNotesAcousticSnare.concat(previousNotesToms);
+            const xTemp02 = nextNotesAcousticSnare.concat(nextNotesToms);
+
+            previousNotes = previousNotesElectricSnare.concat(xTemp);
+            nextNotes = nextNotesElectricSnare.concat(xTemp02);
         }
         
 
