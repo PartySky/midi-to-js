@@ -7,7 +7,6 @@ import {search} from "@tonejs/midi/src/BinarySearch";
 
 const { Midi } = require('@tonejs/midi')
 
-
 export class Main {
     private MIDI_PATH = '../../';
     private PATTERN_PATH = 'patterns/';
@@ -31,23 +30,17 @@ export class Main {
             debugger;
         }
 
-        
-        // todo: move it into loadMidis() 
-        const midi = this.getMidiFromBuffer(file);
-        const DM_250_300bpm_verse_Variation_02_mid = this.getMidiFromBuffer(DM_250_300bpm_verse_Variation_02_pattern);
-        const esIntro_10_pattern_midi = this.getMidiFromBuffer(esIntro_10_pattern);
-        
-        // todo:
-        // const esIntro_10_pattern_midi = loadMidi('es_intro_10.mid');
 
-        if(DM_250_300bpm_verse_Variation_02_mid.tracks.length > 1) {
-            DM_250_300bpm_verse_Variation_02_mid.tracks[0].notes = DM_250_300bpm_verse_Variation_02_mid.tracks[1].notes;
-            DM_250_300bpm_verse_Variation_02_mid.tracks.splice(1);
-        }
-        if(esIntro_10_pattern_midi.tracks.length > 1) {
-            esIntro_10_pattern_midi.tracks[0].notes = esIntro_10_pattern_midi.tracks[1].notes;
-            esIntro_10_pattern_midi.tracks.splice(1);
-        }
+        // todo: move it into loadMidis()
+        const midi = this.prepareMidi(
+            this.getMidiFromBuffer(file)
+        );
+        const DM_250_300bpm_verse_Variation_02_mid = this.prepareMidi(
+            this.getMidiFromBuffer(DM_250_300bpm_verse_Variation_02_pattern)
+        );
+        const esIntro_10_pattern_midi =  this.prepareMidi(
+            this.getMidiFromBuffer(esIntro_10_pattern)
+        );
 
         this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME] = {
             notes: esIntro_10_pattern_midi.tracks[0].notes,
@@ -58,39 +51,40 @@ export class Main {
             header: DM_250_300bpm_verse_Variation_02_mid.header
         };
 
-        //the file name decoded from the first track
-        const name = midi.name
+
+        midi.header.setTempo(120);
+        this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].header.setTempo(120);
+        this.midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].header.setTempo(120);
         
-        if(midi.tracks.length > 1) {
-            midi.tracks[0].notes = midi.tracks[1].notes;
-            midi.tracks.splice(1);
-        }
+        debugger;
+        
+        
         
         //get the tracks
         midi.tracks.forEach((track: Track) => {
             //tracks have notes and controlChanges
-            
+
             //notes are an array
             const notes = track.notes;
             notes.forEach((note: Note) => {
-                console.log('note bar: ' + note.bars + ' tick ' + note.ticks);
+                // console.log('note bar: ' + note.bars + ' tick ' + note.ticks);
                 // note.pitch = 'G';
 
                 //note.midi, note.time, note.duration, note.name
             });
-            
+
             // this.applyTestingPattern(track.notes, midi.header);
             // this.applyESIntroPatternPattern(
-            //     track.notes, 
-            //     midi.header, 
+            //     track.notes,
+            //     midi.header,
             //     esIntro_10_pattern_midi.tracks[0].notes,
             //     esIntro_10_pattern_midi.header);
             this.applyPatterns(
-                track.notes, 
+                track.notes,
                 midi.header,
                 this.midiPatterns
             );
-            
+
             // notes[1].ticks = this.measuresToTicks(2.5, midi.header);
 
             //the control changes are an object
@@ -113,7 +107,7 @@ export class Main {
 
         fs.writeFileSync(path.join(__dirname, `${this.MIDI_PATH}/new.mid`), Buffer.from(miniUint8Array));
     }
-    
+
     /**
      * Convert measures based off of the time signatures into ticks
      */
@@ -121,7 +115,7 @@ export class Main {
         let ticks = bars * header.ppq * 4;
         return ticks;
     }
-    
+
 
     private getNotesByDrumElement(notes: Note[], drumItemEnum: DrumItemEnum): Note[] {
         let result: Note[] = [];
@@ -151,7 +145,7 @@ export class Main {
             GeneralMidiMap.highMidTom,
             GeneralMidiMap.highTom,
         ];
-        
+
         notes.forEach(item => {
             if (drumItemEnum === DrumItemEnum.kick && generalMidiKicks.includes(item.name)) {
                 result.push(item);
@@ -176,10 +170,10 @@ export class Main {
         const result: Note[] = [];
         const delta = 1/16;
         const coef = barFirstSegmentDuration;
-        
+
         notes.forEach(note => {
             const value = note.bars;
-            
+
             /**
              * There is no neceserelly include the first and last notes
              * because they will be included in a wholeBarNotes array
@@ -201,7 +195,7 @@ export class Main {
         const quarterBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/4);
         const halfBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/2);
         const wholeBarNotes: Note[] = this.getNDurationBarNotes(notes, header, 1/1);
-        
+
         notes.forEach(note => {
             note.velocity = 0.01;
         });
@@ -224,22 +218,22 @@ export class Main {
     }
 
     applyESIntroPatternPattern(notes: Note[], header: Header, notes2: Note[], header2: Header): void {
-        
+
         notes.forEach(note => {
             note.velocity = 0.01;
         });
-        
+
         const delta = 1/16;
         let maxBar = this.getMaxBar(notes);
         const step = 1/8;
         const patternMaxBar = this.getMaxBar(notes2);;
         let patternBarCounter = 0
-        
+
         for (let barCounter = 0; barCounter <= maxBar; barCounter = barCounter + step) {
             if (patternBarCounter > patternMaxBar) {
                 patternBarCounter = barCounter % 1;
             }
-            
+
             /**
              * Reference drums
              */
@@ -275,7 +269,7 @@ export class Main {
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
-            
+
             if (kick2Filtered[0]) {
                 kickFiltered.forEach(item => {
                     item.velocity = kick2Filtered[0].velocity;
@@ -293,7 +287,7 @@ export class Main {
                     item.velocity = allAthers2Filtered[0].velocity;
                 });
             }
-            
+
             patternBarCounter = patternBarCounter + step;
         }
     }
@@ -311,7 +305,7 @@ export class Main {
     getMinBar(notes: Note[]): number {
         let result = 0;
         if(!notes || !notes[0]) { return result };
-        
+
         result = notes[0].bars;
         notes.forEach(item => {
             if(item.bars < result) {
@@ -334,31 +328,175 @@ export class Main {
 
     private applyPatterns(notes: Note[], header: Header, midiPatterns: MidiPattern) {
 
-
         notes.forEach(note => {
             note.velocity = 0.01;
         });
 
-
         const delta = 1/16;
         let maxBar = this.getMaxBar(notes);
         const step = 1/8;
-        const patternMaxBar = this.getMaxBar(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes);;
-        let patternBarCounter = 0
+        // Нужены переменные для всех паттернов
+        const patternMaxBar = this.getMaxBar(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes);
+        // Нужены переменные для всех паттернов
+        const patternMaxBar02 = this.getMaxBar(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes);
+        let patternBarCounter = 0;
+        let patternBarCounter02 = 0;
 
-        // /**
-        //  * test
-        //  */
-        //
+        /**
+         * test
+         */
         // midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes.forEach(item => {
         //     item.velocity = 0.1;
         // })
-        
 
-        debugger;
+        const groupsOf8thKick: Note[] = [];
+        const groupsOf8thAcousticSnare: Note[] = [];
+        const groupsOf8thElectricSnare: Note[] = [];
+        const groupsOf8thToms: Note[] = [];
+        const groupsOf8thAllOthers: Note[] = [];
+        
+        
+        
+        const groupsOf4thKick: Note[] = [];
+        const groupsOf4thAcousticSnare: Note[] = [];
+        const groupsOf4thElectricSnare: Note[] = [];
+        const groupsOf4thToms: Note[] = [];
+        const groupsOf4thAllOthers: Note[] = [];
+
+
         for (let barCounter = 0; barCounter <= maxBar; barCounter = barCounter + step) {
-            if (patternBarCounter > patternMaxBar) {
+            const kickFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.kick)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+
+            const acousticSnareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+
+            const electricSnareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.electricSnare)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+
+            const tomsFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.toms)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+
+            const allOthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allOthers)
+                .filter(item => {
+                    return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
+                });
+
+            const isGroupOf8thKick: boolean = this.isGroupOf8th(notes, DrumItemEnum.kick, barCounter, delta, kickFiltered);
+            const isGroupOf8thAcousticSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.acousticSnare, barCounter, delta, acousticSnareFiltered);
+            const isGroupOf8thElectricSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.electricSnare, barCounter, delta, electricSnareFiltered);
+            const isGroupOf8thToms: boolean = this.isGroupOf8th(notes, DrumItemEnum.toms, barCounter, delta, tomsFiltered);
+            const isGroupOf8thAllOthers: boolean = this.isGroupOf8th(notes, DrumItemEnum.allOthers, barCounter, delta, allOthersFiltered);
+
+
+            if (isGroupOf8thKick) {
+                kickFiltered.forEach(item => {
+                    groupsOf8thKick.push(item);
+                });
+            } else {
+                kickFiltered.forEach(item => {
+                    groupsOf4thKick.push(item);
+                });
+            }
+
+            if (isGroupOf8thAcousticSnare) {
+                acousticSnareFiltered.forEach(item => {
+                    groupsOf8thAcousticSnare.push(item);
+                });
+            } else {
+                acousticSnareFiltered.forEach(item => {
+                    groupsOf4thAcousticSnare.push(item);
+                });
+            }
+
+            if (isGroupOf8thElectricSnare) {
+                electricSnareFiltered.forEach(item => {
+                    groupsOf8thElectricSnare.push(item);
+                });
+            } else {
+                electricSnareFiltered.forEach(item => {
+                    groupsOf4thElectricSnare.push(item);
+                });
+            }
+
+            if (isGroupOf8thToms) {
+                tomsFiltered.forEach(item => {
+                    groupsOf8thToms.push(item);
+                });
+            } else {
+                tomsFiltered.forEach(item => {
+                    groupsOf4thToms.push(item);
+                });
+            }
+
+            if (isGroupOf8thAllOthers) {
+                allOthersFiltered.forEach(item => {
+                    groupsOf8thAllOthers.push(item);
+                });
+            } else {
+                allOthersFiltered.forEach(item => {
+                    groupsOf4thAllOthers.push(item);
+                });
+            }
+        }
+
+
+        let maxBerRounded03 = Math.ceil(patternMaxBar02);
+        let maxBerRounded02 = Math.ceil(patternMaxBar);
+
+        const kick3PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.kick);
+        // const kickPreFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.kick);
+
+        const electricSnare3PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.acousticSnare);
+        // const acousticSnarePreFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare);
+
+        const electricSnarePre3PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.electricSnare);
+        // const electricSnarePreFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.electricSnare);
+
+        const toms3PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.toms);
+        // const tomsPreFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.toms);
+
+        const allOthers3PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.allOthers);
+        // const allOthersPreFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allOthers);
+
+        this.prosessPreFiltered(groupsOf8thKick, kick3PreFiltered, maxBerRounded03, header);
+        this.prosessPreFiltered(groupsOf8thAcousticSnare, electricSnare3PreFiltered, maxBerRounded03, header);
+        this.prosessPreFiltered(groupsOf8thElectricSnare, electricSnarePre3PreFiltered, maxBerRounded03, header);
+        this.prosessPreFiltered(groupsOf8thToms, toms3PreFiltered, maxBerRounded03, header);
+        this.prosessPreFiltered(groupsOf8thAllOthers, allOthers3PreFiltered, maxBerRounded03, header);
+
+        const kick2PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.kick);
+
+        const electricSnare2PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.acousticSnare);
+
+        const electricSnarePre2PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.electricSnare);
+
+        const toms2PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.toms);
+
+        const allOthers2PreFiltered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.allOthers);
+
+        this.prosessPreFiltered(groupsOf4thKick, kick2PreFiltered, maxBerRounded02, header);
+        this.prosessPreFiltered(groupsOf4thAcousticSnare, electricSnare2PreFiltered, maxBerRounded02, header);
+        this.prosessPreFiltered(groupsOf4thElectricSnare, electricSnarePre2PreFiltered, maxBerRounded02, header);
+        this.prosessPreFiltered(groupsOf4thToms, toms2PreFiltered, maxBerRounded02, header);
+        this.prosessPreFiltered(groupsOf4thAllOthers, allOthers2PreFiltered, maxBerRounded02, header);
+
+        for (let barCounter = 0; barCounter <= maxBar; barCounter = barCounter + step) {
+            // if (patternBarCounter > (patternMaxBar - step/2)) {
+            if (patternBarCounter > (patternMaxBar)) {
                 patternBarCounter = barCounter % 1;
+            }
+            // if (patternBarCounter02 > (patternMaxBar02 - step/2)) {
+            if (patternBarCounter02 > (patternMaxBar02)) {
+                patternBarCounter02 = barCounter % 1;
             }
 
             /**
@@ -380,31 +518,31 @@ export class Main {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
-            const allAthers2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.allOthers)
+            const allOthers2Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
                 });
 
             const kick3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.kick)
                 .filter(item => {
-                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+                    return ((item.bars >= patternBarCounter02 - delta) && (item.bars < patternBarCounter02 + delta));
                 });
 
             const snare3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.acousticSnare)
                 .filter(item => {
-                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
-                });
-            
-            const toms3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.toms)
-                .filter(item => {
-                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+                    return ((item.bars >= patternBarCounter02 - delta) && (item.bars < patternBarCounter02 + delta));
                 });
 
-            const allAthers3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.allOthers)
+            const toms3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.toms)
                 .filter(item => {
-                    return ((item.bars >= patternBarCounter - delta) && (item.bars < patternBarCounter + delta));
+                    return ((item.bars >= patternBarCounter02 - delta) && (item.bars < patternBarCounter02 + delta));
                 });
-            
+
+            const allOthers3Filtered = this.getNotesByDrumElement(midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes, DrumItemEnum.allOthers)
+                .filter(item => {
+                    return ((item.bars >= patternBarCounter02 - delta) && (item.bars < patternBarCounter02 + delta));
+                });
+
             /**
              * Applaying drums
              */
@@ -417,195 +555,182 @@ export class Main {
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
-            
+
             const electricSnareFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.electricSnare)
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
-            
+
             const tomsFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.toms)
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
-            
+
             const allOthersFiltered = this.getNotesByDrumElement(notes, DrumItemEnum.allOthers)
                 .filter(item => {
                     return ((item.bars >= barCounter - delta) && (item.bars < barCounter + delta));
                 });
-            
+
             const isGroupOf8thKick: boolean = this.isGroupOf8th(notes, DrumItemEnum.kick, barCounter, delta, kickFiltered);
-            // todo: continue from there
             const isGroupOf8thAcousticSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.acousticSnare, barCounter, delta, acousticSnareFiltered);
             const isGroupOf8thElectricSnare: boolean = this.isGroupOf8th(notes, DrumItemEnum.electricSnare, barCounter, delta, electricSnareFiltered);
             const isGroupOf8thToms: boolean = this.isGroupOf8th(notes, DrumItemEnum.toms, barCounter, delta, tomsFiltered);
             const isGroupOf8thAllOthers: boolean = this.isGroupOf8th(notes, DrumItemEnum.allOthers, barCounter, delta, allOthersFiltered);
-            
+
             if (isGroupOf8thKick) {
                 if (kick3Filtered[0]) {
-                    kickFiltered.forEach(item => {
-                        item.velocity = kick3Filtered[0].velocity;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            debugger;
-                            let x1 = kick3Filtered[0].bars;
-                            let x2 = kick3Filtered[0].bars % 1;
-                            let x3 = item.bars + kick3Filtered[0].bars % 1;
-                            let x4 = this.measuresToTicks(item.bars + kick3Filtered[0].bars % 1, header);
-                            
-                            let x5 = this.getClosestNote(item, kick3Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-                            
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                    this.processNotes(
+                        kickFiltered, 
+                        DrumItemEnum.kick, 
+                        patternBarCounter02, 
+                        delta, 
+                        header, 
+                        this.midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes
+                    );
                 }
             } else {
                 if (kick2Filtered[0]) {
-                    kickFiltered.forEach(item => {
-                        item.velocity = kick2Filtered[0].velocity;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-
-                            
-                            debugger;
-                            let x1 = kick2Filtered[0].bars;
-                            let x2 = kick2Filtered[0].bars % 1;
-                            let x3 = item.bars + kick2Filtered[0].bars % 1;
-                            let x4 = this.measuresToTicks(item.bars + kick2Filtered[0].bars % 1, header);
-                            let x5 = this.getClosestNote(item, kick2Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                    this.processNotes(
+                        kickFiltered,
+                        DrumItemEnum.kick,
+                        patternBarCounter,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes
+                    );
                 }
             }
-
-            const acousticSnareReducingCoeffitien4th = 55 * (1/127);
-            const electricSnareReducingCoeffitien4th = 25 * (1/127);
-
-            const acousticSnareReducingCoeffitien8th = 25 * (1/127);
-            const electricSnareReducingCoeffitien8th = 0 * (1/127);
-
+            
             if (isGroupOf8thAcousticSnare) {
                 if (snare3Filtered[0]) {
-                    acousticSnareFiltered.forEach(item => {
-                        item.velocity = snare3Filtered[0].velocity - acousticSnareReducingCoeffitien8th;
-                        // item.velocity = snare3Filtered[0].velocity;
-                        // item.velocity = 0.5;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, snare3Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                    this.processNotes(
+                        acousticSnareFiltered,
+                        DrumItemEnum.acousticSnare,
+                        patternBarCounter02,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes
+                    );
                 }
             } else {
                 if (snare2Filtered[0]) {
-                    acousticSnareFiltered.forEach(item => {
-                        item.velocity = snare2Filtered[0].velocity - acousticSnareReducingCoeffitien4th;
-                        // item.velocity = snare2Filtered[0].velocity;
-                        // item.velocity = 0.25;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, snare2Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                    this.processNotes(
+                        acousticSnareFiltered,
+                        DrumItemEnum.acousticSnare,
+                        patternBarCounter,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes
+                    );
                 }
             }
 
             if (isGroupOf8thElectricSnare) {
                 if (snare3Filtered[0]) {
-                    electricSnareFiltered.forEach(item => {
-                        item.velocity = snare3Filtered[0].velocity - electricSnareReducingCoeffitien8th;
-                        // item.velocity = snare3Filtered[0].velocity;
-                        // item.velocity = 0.7;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, snare3Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                    this.processNotes(
+                        electricSnareFiltered,
+                        DrumItemEnum.electricSnare,
+                        patternBarCounter02,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes
+                    );
                 }
             } else {
                 if (snare2Filtered[0]) {
-                    electricSnareFiltered.forEach(item => {
-                        item.velocity = snare2Filtered[0].velocity - electricSnareReducingCoeffitien4th;
-                        // item.velocity = snare2Filtered[0].velocity;
-                        // item.velocity = 0.75;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, snare2Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                    this.processNotes(
+                        electricSnareFiltered,
+                        DrumItemEnum.electricSnare,
+                        patternBarCounter,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes
+                    );
                 }
             }
 
             if (isGroupOf8thToms) {
                 if (toms3Filtered[0]) {
-                    tomsFiltered.forEach(item => {
-                        // item.velocity = toms3Filtered[0].velocity;
-                        // if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, toms3Filtered);
-                            item.velocity = x5.velocity;
-                            
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-                            
-                            if (this.isStraightAtTheGrid(item.bars)) {
-                                item.ticks = this.measuresToTicks(item.bars + distance, header);
-                            }
-                        // }
-                    });
+                    this.processNotes(
+                        tomsFiltered,
+                        DrumItemEnum.toms,
+                        patternBarCounter02,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes
+                    );
                 }
             } else {
                 if (toms2Filtered[0]) {
-                    tomsFiltered.forEach(item => {
-                        // item.velocity = toms2Filtered[0].velocity;
-                        // if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, toms2Filtered);
-                            item.velocity = x5.velocity;
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            if (this.isStraightAtTheGrid(item.bars)) {
-                                item.ticks = this.measuresToTicks(item.bars + distance, header);
-                            }
-                        // }
-                    });
+                    this.processNotes(
+                        tomsFiltered,
+                        DrumItemEnum.toms,
+                        patternBarCounter,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes
+                    );
                 }
             }
-            
-            if (isGroupOf8thAllOthers) {
-                if (allAthers3Filtered[0]) {
-                    allOthersFiltered.forEach(item => {
-                        item.velocity = allAthers3Filtered[0].velocity;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, allAthers3Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
 
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+            if (isGroupOf8thAllOthers) {
+                if (allOthers3Filtered[0]) {
+                    this.processNotes(
+                        allOthersFiltered,
+                        DrumItemEnum.allOthers,
+                        patternBarCounter02,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_250_300_8TH_PATTERN_NAME].notes
+                    );
                 }
             } else {
-                if (allAthers2Filtered[0]) {
-                    allOthersFiltered.forEach(item => {
-                        item.velocity = allAthers2Filtered[0].velocity;
-                        if (this.isStraightAtTheGrid(item.bars)) {
-                            let x5 = this.getClosestNote(item, allAthers2Filtered);
-                            let distance = - ((item.bars % 1) - (x5.bars % 1));
-
-                            item.ticks = this.measuresToTicks(item.bars + distance, header);
-                        }
-                    });
+                if (allOthers2Filtered[0]) {
+                    this.processNotes(
+                        allOthersFiltered,
+                        DrumItemEnum.allOthers,
+                        patternBarCounter,
+                        delta,
+                        header,
+                        this.midiPatterns[this.BPM_001_300_4TH_PATTERN_NAME].notes
+                    );
                 }
             }
-            
-            
+
+
             patternBarCounter = patternBarCounter + step;
+            patternBarCounter02 = patternBarCounter02 + step;
+        }
+        
+        const reduceSnareAndTomsVelocity = true;
+        if(reduceSnareAndTomsVelocity) {
+            const acousticSnareReducingCoeffitien4th = 55 * (1/127);
+            const electricSnareReducingCoeffitien4th = 25 * (1/127);
+
+            const acousticSnareReducingCoeffitien8th = 25 * (1/127);
+            const electricSnareReducingCoeffitien8th = 0 * (1/127);
+            
+            const tomsReducingCoeffitien4th = 55 * (1/127);
+            const tomsReducingCoeffitien8th = 25 * (1/127);
+
+            groupsOf4thAcousticSnare.forEach(item => {
+                item.velocity = item.velocity - acousticSnareReducingCoeffitien4th;
+            })
+            groupsOf4thElectricSnare.forEach(item => {
+                item.velocity = item.velocity - electricSnareReducingCoeffitien4th;
+            })
+            groupsOf8thAcousticSnare.forEach(item => {
+                item.velocity = item.velocity - acousticSnareReducingCoeffitien8th;
+            })
+            groupsOf8thElectricSnare.forEach(item => {
+                item.velocity = item.velocity - electricSnareReducingCoeffitien8th;
+            })
+            groupsOf4thToms.forEach(item => {
+                item.velocity = item.velocity - tomsReducingCoeffitien4th;
+            })
+            groupsOf8thToms.forEach(item => {
+                item.velocity = item.velocity - tomsReducingCoeffitien8th;
+            })
         }
     }
 
@@ -614,10 +739,10 @@ export class Main {
 
         let previousNotes: Note[] = [];
         let nextNotes: Note[] = [];
-        
+
         if (
-            instrument !== DrumItemEnum.acousticSnare && 
-            instrument !== DrumItemEnum.electricSnare && 
+            instrument !== DrumItemEnum.acousticSnare &&
+            instrument !== DrumItemEnum.electricSnare &&
             instrument !== DrumItemEnum.toms
         ) {
             previousNotes = this.getNotesByDrumElement(notes, instrument)
@@ -642,8 +767,8 @@ export class Main {
                 .filter(item => {
                     return (item.bars < barCounter - delta);
                 });
-            
-            
+
+
             const nextNotesAcousticSnare = this.getNotesByDrumElement(notes, DrumItemEnum.acousticSnare)
                 .filter(item => {
                     return (item.bars >= barCounter + delta);
@@ -663,7 +788,7 @@ export class Main {
             previousNotes = previousNotesElectricSnare.concat(xTemp);
             nextNotes = nextNotesElectricSnare.concat(xTemp02);
         }
-        
+
 
         const previousNoteBar = this.getMaxBar(previousNotes);
         const nextNoteBar = this.getMinBar(nextNotes);
@@ -672,36 +797,144 @@ export class Main {
             ((previousNoteBar !== 0) && ((barCounter - previousNoteBar) < 1/8 + delta)) ||
             ((nextNoteBar !== 0) && ((nextNoteBar - barCounter) <= (1/8 + delta)))
         );
+
+        return result;
+    }
+
+    private isStraightAtTheGrid(bars: number) {
+        let result = false;
+        if (bars === 0) {return false}
+        
+        const xTemp: number[] = [
+            0,
+            1/1,
+            1/2,
+            
+            1/3,
+            2/3,
+
+            1/4,
+            2/4,
+            3/4,
+
+            1/6,
+            2/6,
+            3/6,
+            4/6,
+            5/6,
+
+            1/8,
+            2/8,
+            3/8,
+            4/8,
+            5/8,
+            6/8,
+            7/8,
+
+            1/12,
+            2/12,
+            3/12,
+            4/12,
+            5/12,
+            6/12,
+            7/12,
+            8/12,
+            9/12,
+            10/12,
+            11/12,
+
+            1/16,
+            2/16,
+            3/16,
+            4/16,
+            5/16,
+            6/16,
+            7/16,
+            8/16,
+            9/16,
+            10/16,
+            11/16,
+            12/16,
+            13/16,
+            14/16,
+            15/16,
+
+            1/32,
+            2/32,
+            3/32,
+            4/32,
+            5/32,
+            6/32,
+            7/32,
+            8/32,
+            9/32,
+            10/32,
+            11/32,
+            12/32,
+            13/32,
+            14/32,
+            15/32,
+            16/32,
+            17/32,
+            18/32,
+            19/32,
+            20/32,
+            21/32,
+            22/32,
+            23/32,
+            24/32,
+            25/32,
+            26/32,
+            27/32,
+            28/32,
+            29/32,
+            30/32,
+            31/32,
+        ];
+
+        if (xTemp.includes(bars % 1)) {
+            result = true;
+        }
+
+        return result;
+    }
+
+    private getClosestNoteVelocity(note: Note, notes: Note[], offset: number): number {
+        let result = notes[0];
+
+        notes.forEach(item => {
+            if(
+                Math.abs((item.ticks + offset) - note.ticks) <
+                Math.abs(result.ticks - note.ticks)
+            ) {
+                result = item;
+            }
+        })
+
+        return result.velocity;
+    }
+    
+    private getClosestNote2(note: Note, notes: Note[], offset: number): number {
+        let result: number = notes[0].ticks;
+
+        notes.forEach(item => {
+            if(
+                Math.abs((item.ticks + offset) - note.ticks) <
+                Math.abs(result - note.ticks)
+            ) {
+                result = item.ticks + offset;
+            }
+        })
         
         return result;
     }
     
-    private isStraightAtTheGrid(bars: number) {
-        let result = false;
-        const xTemp: number[] = [
-            1/8,
-            1/8 * 2,
-            1/8 * 3,
-            1/8 * 4,
-            1/8 * 5,
-            1/8 * 6,
-            1/8 * 7,
-            1/8 * 8,
-        ];
-        
-        if (xTemp.includes(bars % 1)) {
-            result = true;
-        }
-        
-        return result;
-    }
-
     private getClosestNote(note: Note, notes: Note[]): Note {
         let result: Note = notes[0];
-        
+
         notes.forEach(item => {
             if(
-                Math.abs(item.bars % 1 - note.bars % 1) < 
+                Math.abs(item.bars % 1 - note.bars % 1) <
                 Math.abs(result.bars % 1 - note.bars % 1)
             ) {
                 result = item;
@@ -709,6 +942,128 @@ export class Main {
         })
         
         return result;
+    }
+
+    private getClosestNoteBackward(note: Note, notes: Note[]): Note {
+        let result: Note = notes[0];
+        
+        notes.forEach(item => {
+            if(
+                Math.abs((1 - item.bars % 1) - note.bars % 1) <
+                Math.abs((1 - result.bars % 1) - note.bars % 1)
+            ) {
+                result = item;
+            }
+        })
+
+        return result;
+    }
+
+    private getLastNote(notes: Note[]): Note {
+        let result: Note = notes[0];
+
+        notes.forEach(item => {
+            if(item.bars > result.bars) {
+                result = item;
+            }
+        })
+
+        return result;
+    }
+
+    private prepareMidi(midi: Midi) {
+        const result = midi;
+        if(midi.tracks.length > 1) {
+            if (midi.tracks[0].notes.length == 0 && midi.tracks[1].notes.length !== 0) {
+                midi.tracks[0].notes = midi.tracks[1].notes;
+            }
+            midi.tracks.splice(1);
+        }
+        return result;
+    }
+
+    compare( a: Note, b: Note ) {
+        if ( a.bars < b.bars ) {
+            return -1;
+        }
+        if ( a.bars > b.bars ) {
+            return 1;
+        }
+        return 0;
+    }
+
+    private processNotes(instrumentFiltered: Note[], drumInstrument: DrumItemEnum, patternBarCounter02: number, delta: number, header: Header, midiPatternNotes: Note[]): void {
+        instrumentFiltered.forEach(item => {
+            let applyOffset = this.isStraightAtTheGrid(item.bars);
+            // test
+            applyOffset = false;
+            
+            
+            let x6 = this.getNotesByDrumElement(midiPatternNotes, drumInstrument);
+
+            let x7 = x6.filter(item => {
+                return ((item.bars >= patternBarCounter02 - (delta*2)) && (item.bars < patternBarCounter02 + (delta*2)));
+            });
+
+            let x5 = this.getClosestNote(item, x7);
+            let x8 = this.getClosestNoteBackward(item, x7);
+
+            /**
+             * Hotfix
+             */
+            let isLastNoteInPattern = ((item.bars % 1 !== 0) && patternBarCounter02 === 0);
+
+            if (isLastNoteInPattern) {
+                let lastNoteInPattern = this.getLastNote(x6);
+                if (applyOffset) {
+                    item.ticks = this.measuresToTicks(Math.floor(item.bars), header) + this.measuresToTicks(lastNoteInPattern.bars % 1, header);
+                }
+                item.velocity = lastNoteInPattern.velocity;
+
+            } else if (item.bars % 1 !== 0) {
+                if (applyOffset) {
+                    item.ticks = this.measuresToTicks(Math.floor(item.bars), header) + this.measuresToTicks(x5.bars % 1, header);
+                }
+                item.velocity = x5.velocity;
+                
+            } else {
+                if (Math.abs((1 - (x8.bars % 1))) < Math.abs(x5.bars % 1)) {
+                    if (applyOffset) {
+                        item.ticks = this.measuresToTicks(Math.floor(item.bars - 1), header) + this.measuresToTicks(x8.bars % 1, header);
+                    }
+                    item.velocity = x8.velocity;
+
+                } else {
+                    if (applyOffset) {
+                        item.ticks = this.measuresToTicks(Math.floor(item.bars), header) + this.measuresToTicks(x5.bars % 1, header);
+                    }
+                    item.velocity = x5.velocity;
+                }
+            }
+        });
+        
+    }
+
+    private prosessPreFiltered(notesFiltered: Note[], patternNotesPreFiltered: Note[], maxBerRounded: number, header: Header): void {
+        let counterTemp = 0;
+        
+        notesFiltered.forEach(x => {
+            if(x.bars >= 8) {
+                debugger;
+            }
+            
+            counterTemp = Math.floor(x.bars / maxBerRounded);
+
+            let offset = this.measuresToTicks(maxBerRounded, header) * counterTemp;
+
+            let x1 = this.getClosestNote2(x, patternNotesPreFiltered, offset);
+            x.ticks = x1;
+            
+            // It doesn't work well
+            // let xVelocity = this.getClosestNoteVelocity(x, patternNotesPreFiltered, offset);
+            // x.velocity = xVelocity;
+        })
+        
     }
 }
 
@@ -726,7 +1081,7 @@ export enum GeneralMidiMap {
      */
     acousticBassDrum = 'B1',
     bassDrum = 'C2',
-    
+
     /**
      * Snares
      */
@@ -746,7 +1101,7 @@ export enum GeneralMidiMap {
 
 export interface MidiPattern {
     [id: string]: {
-        notes: Note[], 
+        notes: Note[],
         header: Header
     }
 }
